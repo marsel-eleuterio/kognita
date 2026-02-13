@@ -52,9 +52,9 @@ exercicio_DSteam_shared4/
 
 | # | Notebook | Descrição | Tempo | Cells |
 |---|----------|-----------|-------|-------|
-| 1 | `notebooks/1_EDA.ipynb` | Análise exploratória + viés de maturação | 30-60 min | 50 |
+| 1 | `notebooks/1_EDA.ipynb` | Análise exploratória + viés de maturação + clusters | 30-60 min | 57 |
 | 2 | `notebooks/2_model_pipeline.ipynb` | Modelagem + CV + tuning + SHAP + threshold | 45-90 min | 73 |
-| 3 | `notebooks/3_prediction.ipynb` | Função de predição | 15-30 min | 15 |
+| 3 | `notebooks/3_prediction.ipynb` | Função de predição | 15-30 min | 16 |
 
 ---
 
@@ -80,7 +80,11 @@ exercicio_DSteam_shared4/
 
 | Tópico | Onde |
 |--------|-----|
-| Viés de maturação | `1_EDA.ipynb` (seção final) |
+| Valores negativos e anomalias | `1_EDA.ipynb` (seção 6.1) |
+| Testes estatísticos (Mann-Whitney) | `1_EDA.ipynb` (seção 6.2) |
+| Análise de clusters | `1_EDA.ipynb` (seção 9.1) |
+| Viés de maturação | `1_EDA.ipynb` (seção 10) |
+| Feature engineering (7 features) | `2_model_pipeline.ipynb` (seção 3) |
 | Pré-processamento | `2_model_pipeline.ipynb` (seção 5) |
 | Hyperparameter tuning | `2_model_pipeline.ipynb` (seção 9.1) |
 | SHAP analysis | `2_model_pipeline.ipynb` (seção 12.1) |
@@ -101,4 +105,4 @@ python -c "import pandas, sklearn, xgboost, lightgbm, shap; print('OK')"
 
 ---
 
-**Versão**: 3.0.0 | **Data**: 2026-02-12
+**Versão**: 3.3.0 | **Data**: 2026-02-13

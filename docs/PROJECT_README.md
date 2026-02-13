@@ -136,20 +136,24 @@ result = predict_default(input_dict)
 
 ## Notebooks
 
-### 1. Análise Exploratória (1_EDA.ipynb) — 50 cells
+### 1. Análise Exploratória (1_EDA.ipynb) — 57 cells
 
 - Carregamento e limpeza de dados
 - Análise de valores faltantes e distribuição do target (~16-17% default)
 - Análise univariada e bivariada
+- **Auditoria de valores negativos e anomalias numéricas** (seção 6.1)
+- **Testes estatísticos Mann-Whitney U** com effect size, KDE plots e violin plots (seção 6.2)
+- **Análise de esparsidade** (zeros vs não-zeros) e impacto no default
 - Matriz de correlação
+- **Análise de clusters K-Means** com PCA, Silhouette Score e perfis de risco (seção 9.1)
 - **Análise temporal detalhada** com séries temporais
 - **ACHADO CRÍTICO: Viés de Maturação** — últimos meses têm taxa de default artificialmente baixa (parcelas ainda não venceram)
 - Decisão: NÃO usar validação out-of-time
 
 ### 2. Pipeline de Modelagem (2_model_pipeline.ipynb) — 73 cells
 
-- **Preparação de dados**: Remoção de variáveis temporais (year, month) para evitar data leakage
-- **Feature engineering**: Ratios financeiros, flags de risco, exposição total
+- **Preparação de dados**: Remoção de variável year para evitar data leakage; month mantido como categórica (sazonalidade)
+- **Feature engineering**: 7 features derivadas (razao_inadimplencia, taxa_cobertura_divida, total_exposto, razao_vencido_pedido, flag_risco_juridico, ticket_medio_protestos, qtd_parcelas)
 - **Divisão treino/teste**: Estratificada 80/20
 - **Pré-processamento** (ColumnTransformer):
   - Numéricos: SimpleImputer(median) + RobustScaler
@@ -165,7 +169,7 @@ result = predict_default(input_dict)
 - **SHAP Analysis** (SHapley Additive exPlanations) para interpretabilidade
 - **Pipeline final**: `Pipeline([('preprocessor', ColumnTransformer), ('classifier', XGBoost)])`
 
-### 3. Função de Predição (3_prediction.ipynb) — 15 cells
+### 3. Função de Predição (3_prediction.ipynb) — 16 cells
 
 - Carregamento do pipeline completo (preprocessor → classifier)
 - Funções `predict_default()` e `predict_default_batch()`
@@ -229,11 +233,15 @@ result = predict_default(input_dict)
 - **Análise temporal e identificação de viés de maturação**
 - Decisão sobre estratégia de validação
 
-### 2. Feature Engineering
-- Ratios financeiros (ex: vencido/quitado)
-- Flags de risco (ex: tem_protestos, tem_acao_judicial)
-- Exposição total de crédito
-- **Exclusão de variáveis temporais** (year, month) para evitar data leakage
+### 2. Feature Engineering (7 features derivadas)
+- `total_exposto`: volume total de relacionamento financeiro (vencido + por_vencer + quitado)
+- `razao_inadimplencia`: grau de deterioração da carteira (vencido / total_exposto)
+- `taxa_cobertura_divida`: capacidade histórica de pagamento (quitado / pedido)
+- `razao_vencido_pedido`: alavancagem atual (vencido / pedido)
+- `flag_risco_juridico`: sinal binário (1 se tem protestos OU ações judiciais)
+- `ticket_medio_protestos`: gravidade do problema jurídico (valor / quantidade)
+- `qtd_parcelas`: complexidade de pagamento extraída de forma_pagamento (proxy fluxo de caixa)
+- **Exclusão de variável year** para evitar data leakage; month mantido como categórica
 
 ### 3. Pré-processamento
 - **Missing Values**: Imputação por mediana (numérico) ou "missing"/"unknown" (categórico)
@@ -374,4 +382,4 @@ ls models/model_*.pkl models/model_metadata.json
 
 ---
 
-**Versão**: 3.0.0 | **Data**: 2026-02-12 | **Status**: Produção
+**Versão**: 3.3.0 | **Data**: 2026-02-13 | **Status**: Produção

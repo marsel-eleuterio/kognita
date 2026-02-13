@@ -1,6 +1,6 @@
 # Resumo Executivo - X-Health Default Prediction
 
-> **Versão**: 3.0.0 | **Data**: 2026-02-12 | **Status**: Produção
+> **Versão**: 3.3.0 | **Data**: 2026-02-13 | **Status**: Produção
 
 ---
 
@@ -11,6 +11,7 @@ Modelo de machine learning para predição de default (calote) em transações B
 **Destaques**:
 - Identificação de viés de maturação nos dados (achado crítico)
 - StratifiedKFold CV ao invés de validação out-of-time
+- 7 features derivadas com fundamentação de negócio
 - Hyperparameter tuning com controles anti-overfitting
 - SHAP analysis para interpretabilidade
 - Otimização de threshold para diferentes cenários de negócio
@@ -22,7 +23,7 @@ Modelo de machine learning para predição de default (calote) em transações B
 ```
 exercicio_DSteam_shared4/
 ├── notebooks/                    # Notebooks Jupyter
-│   ├── 1_EDA.ipynb              # Análise exploratória + viés de maturação
+│   ├── 1_EDA.ipynb              # Análise exploratória + clusters + viés de maturação
 │   ├── 2_model_pipeline.ipynb   # Modelagem + tuning + SHAP
 │   └── 3_prediction.ipynb       # Função de predição
 ├── models/                       # Pipeline treinado + metadados
@@ -49,17 +50,29 @@ exercicio_DSteam_shared4/
 
 ---
 
+## Feature Engineering (7 features derivadas)
+
+| Feature | Fórmula | Lógica |
+|---------|---------|--------|
+| `total_exposto` | vencido + por_vencer + quitado | Volume total de relacionamento |
+| `razao_inadimplencia` | vencido / total_exposto | Grau de deterioração da carteira |
+| `taxa_cobertura_divida` | quitado / pedido | Capacidade histórica de pagamento |
+| `razao_vencido_pedido` | vencido / pedido | Alavancagem atual |
+| `flag_risco_juridico` | 1 se protestos OU ações judiciais | Sinal binário de alerta |
+| `ticket_medio_protestos` | valor_protestos / quant_protestos | Gravidade do problema jurídico |
+| `qtd_parcelas` | contagem de '/' em forma_pagamento + 1 | Proxy de fluxo de caixa |
+
+---
+
 ## Pipeline de Modelagem
 
 ### Pré-processamento (ColumnTransformer)
 
 | Tipo | Transformação | Features |
 |------|--------------|----------|
-| Numérico | SimpleImputer + RobustScaler | 20 features |
-| Alta cardinalidade | SimpleImputer + TargetEncoder | tipo_sociedade, atividade_principal, forma_pagamento |
-| Baixa cardinalidade | SimpleImputer + OneHotEncoder | opcao_tributaria |
-
-**24 features raw → 28 features processadas**
+| Numérico | SimpleImputer + RobustScaler | 22 features (15 brutas + 7 derivadas) |
+| Alta cardinalidade | SimpleImputer + TargetEncoder | atividade_principal, forma_pagamento |
+| Baixa cardinalidade | SimpleImputer + OneHotEncoder | tipo_sociedade, opcao_tributaria, month |
 
 ### Modelos Comparados (6)
 Logistic Regression, Decision Tree, Random Forest, Gradient Boosting, **XGBoost** (vencedor), LightGBM
@@ -94,14 +107,18 @@ Pipeline([
 
 ## Análises Implementadas
 
-### Notebook 1: EDA (50 cells)
+### Notebook 1: EDA (57 cells)
 - Análise univariada/bivariada completa
+- Auditoria de valores negativos e anomalias (seção 6.1)
+- Testes estatísticos Mann-Whitney U com effect size, KDE e violin plots (seção 6.2)
+- Análise de esparsidade (zeros vs não-zeros) e impacto no default
+- Matriz de correlação
+- Análise de clusters K-Means com PCA e perfis de risco (seção 9.1)
 - Análise temporal detalhada
-- Identificação de viés de maturação
-- Boxplots comparativos (Pago vs Default)
+- Identificação de viés de maturação e picos anomalos
 
 ### Notebook 2: Pipeline (73 cells)
-- Feature engineering (ratios, flags)
+- Feature engineering (7 features derivadas com fundamentação de negócio)
 - ColumnTransformer (Target Encoding + RobustScaler + OneHotEncoder)
 - 6 modelos com StratifiedKFold CV
 - Hyperparameter tuning (RandomizedSearchCV)
@@ -109,8 +126,9 @@ Pipeline([
 - SHAP analysis
 - Otimização de threshold (4 cenários de custo)
 
-### Notebook 3: Predição (15 cells)
+### Notebook 3: Predição (16 cells)
 - Funções `predict_default()` e `predict_default_batch()`
+- Feature engineering automático (7 features derivadas)
 - Exemplos práticos
 - Comparação de thresholds
 - Validação com dados reais
@@ -140,4 +158,4 @@ pip install -r requirements.txt
 
 ---
 
-**Versão**: 3.0.0 | **Data**: 2026-02-12
+**Versão**: 3.3.0 | **Data**: 2026-02-13

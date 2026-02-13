@@ -2,6 +2,58 @@
 
 ---
 
+## [3.3.0] - 2026-02-13
+
+### Mudanças Principais
+
+#### Feature Engineering Reformulado (7 features derivadas)
+
+Features antigas (5) foram substituidas por 7 features com fundamentacao de negocio:
+
+| Feature Antiga | Feature Nova | Mudanca |
+|---|---|---|
+| `ratio_vencido_quitado` | `razao_inadimplencia` | Denominador agora e `total_exposto` (vencido + por_vencer + quitado) |
+| `ratio_pedido_historico` | `taxa_cobertura_divida` | Formula invertida: quitado/pedido (capacidade historica) |
+| `exposicao_total` | `total_exposto` | Inclui `valor_quitado` (antes era so vencido + por_vencer) |
+| `tem_protestos` + `tem_acao_judicial` | `flag_risco_juridico` | Unificada: 1 se tem protesto OU acao judicial |
+| *(nova)* | `ticket_medio_protestos` | valor_protestos / quant_protestos (gravidade) |
+| *(nova)* | `razao_vencido_pedido` | vencido / pedido (alavancagem) |
+| *(nova)* | `qtd_parcelas` | Conta barras '/' em forma_pagamento + 1 (proxy fluxo de caixa) |
+
+**Impacto**: Atualizado em 3 locais (pipeline cell 8, predictions cell 2, script embutido cell 15) + model_metadata.json.
+
+**Nota**: Modelo precisa ser retreinado para refletir as novas features.
+
+#### EDA Aprofundado (1_EDA.ipynb: 50 -> 57 cells)
+
+Novas analises adicionadas ao notebook de EDA:
+
+1. **Secao 6.1 - Auditoria de Valores Negativos e Anomalias**
+   - Tabela de negativos, zeros e positivos por variavel
+   - Taxa de default para registros negativos vs positivos
+   - Grafico de composicao (stacked bar)
+
+2. **Secao 6.2 - Analise Estatistica Avancada**
+   - Testes Mann-Whitney U (default=0 vs default=1) com effect size
+   - Metricas de assimetria (skewness) e curtose (kurtosis)
+   - KDE plots sobrepostos por status de default
+   - Violin plots das top 6 variaveis discriminativas
+   - Analise de esparsidade (zeros vs nao-zeros) e impacto no default
+
+3. **Secao 9.1 - Analise de Clusters (K-Means)**
+   - Metodo do cotovelo + Silhouette Score
+   - K-Means com RobustScaler + VarianceThreshold
+   - PCA 2D para visualizacao dos clusters
+   - Taxa de default por cluster
+   - Heatmap dos centroides com interpretacao automatica
+
+#### Documentacao Atualizada
+- Markdowns de conclusao dos 3 notebooks atualizados
+- model_metadata.json: derived_features e numeric_features atualizados
+- docs/: INDEX.md, CHANGELOG.md, PROJECT_README.md, SUMMARY.md atualizados
+
+---
+
 ## [3.2.0] - 2026-02-13
 
 ### Mudanças Principais
@@ -173,20 +225,19 @@ Espaço de busca DRASTICAMENTE restrito (detalhes omitidos - ver v3.2 para vers�
 
 ## Comparação de Versões
 
-| Aspecto | v1.0 | v2.0 | v3.0 | v3.1 | v3.2 |
-|---------|------|------|------|------|------|
-| Validação | Out-of-time | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV |
-| Scaling | StandardScaler | StandardScaler | RobustScaler | RobustScaler | RobustScaler |
-| Encoding | OneHotEncoder | OneHotEncoder | Target + OneHot | Target + OneHot | Target + OneHot |
-| Tuning | Nenhum | Nenhum | Moderado | Agressivo | **Balanceado** |
-| SHAP | Nenhum | Nenhum | Implementado | Implementado | Implementado |
-| Threshold | 0.5 fixo | Otimizado | Otimizado | Otimizado | Otimizado |
-| Pipeline | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model |
-| Balanceamento | Nenhum | Nenhum | class_weight | class_weight | class_weight |
-| ROC-AUC Test | - | - | 0.9037 | 0.8798 ❌ | > 0.90 (obj) |
-| Gap F1 | - | - | 22.3% ❌ | 3.5% ✅ | < 10% (obj) |
-| Resultado | - | - | Overfitting severo | Underfitting | **Performance + Generalização** |
+| Aspecto | v1.0 | v2.0 | v3.0 | v3.1 | v3.2 | v3.3 |
+|---------|------|------|------|------|------|------|
+| Validação | Out-of-time | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV |
+| Scaling | StandardScaler | StandardScaler | RobustScaler | RobustScaler | RobustScaler | RobustScaler |
+| Encoding | OneHotEncoder | OneHotEncoder | Target + OneHot | Target + OneHot | Target + OneHot | Target + OneHot |
+| Tuning | Nenhum | Nenhum | Moderado | Agressivo | Balanceado | Balanceado |
+| Features derivadas | Nenhuma | Nenhuma | 5 (ratios, flags) | 5 | 5 | **7 (reformuladas)** |
+| EDA | Básico | + Viés maturação | + Viés maturação | + Viés maturação | + Viés maturação | **+ Negativos, Clusters, Testes** |
+| SHAP | Nenhum | Nenhum | Implementado | Implementado | Implementado | Implementado |
+| Threshold | 0.5 fixo | Otimizado | Otimizado | Otimizado | Otimizado | Otimizado |
+| Pipeline | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model |
+| Balanceamento | Nenhum | Nenhum | class_weight | class_weight | class_weight | class_weight |
 
 ---
 
-**Versão atual**: 3.2.0 | **Data**: 2026-02-13
+**Versão atual**: 3.3.0 | **Data**: 2026-02-13

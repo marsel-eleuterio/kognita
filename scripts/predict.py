@@ -19,16 +19,26 @@ THRESHOLD_F1 = metadata.get('optimal_threshold_f1', 0.5)
 
 def engineer_features(df):
     df = df.copy()
-    if 'valor_vencido' in df.columns and 'valor_quitado' in df.columns:
-        df['ratio_vencido_quitado'] = df['valor_vencido'] / (df['valor_quitado'] + 1)
-    if 'valor_total_pedido' in df.columns and 'valor_quitado' in df.columns:
-        df['ratio_pedido_historico'] = df['valor_total_pedido'] / (df['valor_quitado'] + 1)
-    if 'valor_por_vencer' in df.columns and 'valor_vencido' in df.columns:
-        df['exposicao_total'] = df['valor_por_vencer'] + df['valor_vencido']
-    if 'quant_protestos' in df.columns:
-        df['tem_protestos'] = (df['quant_protestos'] > 0).astype(int)
-    if 'quant_acao_judicial' in df.columns:
-        df['tem_acao_judicial'] = (df['quant_acao_judicial'] > 0).astype(int)
+    if all(c in df.columns for c in ['valor_vencido', 'valor_por_vencer', 'valor_quitado']):
+        df['total_exposto'] = df['valor_vencido'] + df['valor_por_vencer'] + df['valor_quitado']
+    if 'valor_vencido' in df.columns and 'total_exposto' in df.columns:
+        df['razao_inadimplencia'] = df['valor_vencido'] / (df['total_exposto'] + 1)
+    if 'valor_quitado' in df.columns and 'valor_total_pedido' in df.columns:
+        df['taxa_cobertura_divida'] = df['valor_quitado'] / (df['valor_total_pedido'] + 1)
+    if 'valor_vencido' in df.columns and 'valor_total_pedido' in df.columns:
+        df['razao_vencido_pedido'] = df['valor_vencido'] / (df['valor_total_pedido'] + 1)
+    if 'quant_protestos' in df.columns and 'quant_acao_judicial' in df.columns:
+        df['flag_risco_juridico'] = ((df['quant_protestos'] > 0) | (df['quant_acao_judicial'] > 0)).astype(int)
+    elif 'quant_protestos' in df.columns:
+        df['flag_risco_juridico'] = (df['quant_protestos'] > 0).astype(int)
+    elif 'quant_acao_judicial' in df.columns:
+        df['flag_risco_juridico'] = (df['quant_acao_judicial'] > 0).astype(int)
+    if 'valor_protestos' in df.columns and 'quant_protestos' in df.columns:
+        df['ticket_medio_protestos'] = df['valor_protestos'] / (df['quant_protestos'] + 1)
+    if 'forma_pagamento' in df.columns:
+        df['qtd_parcelas'] = df['forma_pagamento'].apply(
+            lambda x: str(x).count('/') + 1 if pd.notna(x) and str(x) not in ('nan', 'missing', 'unknown', '') else 1
+        )
     return df
 
 
