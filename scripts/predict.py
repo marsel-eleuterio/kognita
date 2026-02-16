@@ -4,6 +4,12 @@
 Feature engineering automatico: features derivadas calculadas internamente.
 Missing values: categoricas -> 'unknown', numericas -> NaN (imputer usa mediana).
 month e tratado como categorica (correlacao com default no EDA).
+
+Decisoes de qualidade de dados (baseadas no EDA):
+- valor_total_pedido negativo: rejeitado (possivel inconsistencia nos dados)
+- 6 variaveis com >=99% zeros excluidas do modelo (possivel filtro pre-venda):
+  participacao_falencia_valor, falencia_concordata_qtd, acao_judicial_valor,
+  dividas_vencidas_qtd, dividas_vencidas_valor, quant_acao_judicial
 """
 import pandas as pd, numpy as np, joblib, json
 from pathlib import Path
@@ -27,12 +33,9 @@ def engineer_features(df):
         df['taxa_cobertura_divida'] = df['valor_quitado'] / (df['valor_total_pedido'] + 1)
     if 'valor_vencido' in df.columns and 'valor_total_pedido' in df.columns:
         df['razao_vencido_pedido'] = df['valor_vencido'] / (df['valor_total_pedido'] + 1)
-    if 'quant_protestos' in df.columns and 'quant_acao_judicial' in df.columns:
-        df['flag_risco_juridico'] = ((df['quant_protestos'] > 0) | (df['quant_acao_judicial'] > 0)).astype(int)
-    elif 'quant_protestos' in df.columns:
+    # quant_acao_judicial excluida (>=99% zeros - possivel filtro pre-venda)
+    if 'quant_protestos' in df.columns:
         df['flag_risco_juridico'] = (df['quant_protestos'] > 0).astype(int)
-    elif 'quant_acao_judicial' in df.columns:
-        df['flag_risco_juridico'] = (df['quant_acao_judicial'] > 0).astype(int)
     if 'valor_protestos' in df.columns and 'quant_protestos' in df.columns:
         df['ticket_medio_protestos'] = df['valor_protestos'] / (df['quant_protestos'] + 1)
     if 'forma_pagamento' in df.columns:
@@ -59,6 +62,11 @@ def predict_default(input_dict, threshold=None):
             df[col] = df[col].apply(to_categorical)
         else:
             df[col] = pd.to_numeric(df[col].replace('missing', np.nan), errors='coerce')
+    # Validar valor_total_pedido negativo (inconsistencia nos dados - EDA)
+    if 'valor_total_pedido' in df.columns:
+        vtp = pd.to_numeric(df['valor_total_pedido'], errors='coerce')
+        if (vtp < 0).any():
+            return {"error": "valor_total_pedido negativo detectado - possivel inconsistencia nos dados"}
     df = engineer_features(df)
     for f in ALL_FEATURES:
         if f not in df.columns:
