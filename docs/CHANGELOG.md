@@ -2,6 +2,44 @@
 
 ---
 
+## [3.4.0] - 2026-02-16
+
+### Mudanças Principais
+
+#### Filtros de Qualidade de Dados (baseados no EDA)
+
+Aplicadas duas decisoes de limpeza de dados fundamentadas na analise exploratoria:
+
+**1. Remocao de registros com valor_total_pedido negativo**
+- 144 registros (0.12%) removidos do pipeline de modelagem
+- Motivo: possivel inconsistencia nos dados (estornos, ajustes ou erros de cadastro)
+- Valores negativos distorcem features derivadas (`taxa_cobertura_divida`, `razao_vencido_pedido`)
+- Predicao: rejeita valores negativos com mensagem de erro
+
+**2. Exclusao de 6 variaveis com >=99% de zeros**
+- Alto indice de zeros indica possivel filtro pre-venda (clientes sem registros nessas dimensoes)
+- Variaveis removidas:
+  - `participacao_falencia_valor` (100.00% zeros)
+  - `falencia_concordata_qtd` (99.95% zeros)
+  - `acao_judicial_valor` (99.53% zeros)
+  - `dividas_vencidas_qtd` (99.39% zeros)
+  - `dividas_vencidas_valor` (99.33% zeros)
+  - `quant_acao_judicial` (99.18% zeros)
+
+**Impacto nas features derivadas:**
+- `flag_risco_juridico` simplificada: agora usa apenas `quant_protestos` (96.27% zeros, abaixo do threshold)
+- Demais features derivadas nao afetadas
+
+**Arquivos alterados:**
+- `notebooks/2_model_pipeline.ipynb`: Cells 5 (remocao negativos), 8 (exclusao variaveis + flag simplificada), 72 (conclusoes)
+- `notebooks/3_prediction.ipynb`: Cells 1 (docs), 2 (engineer_features), 4 (validacao negativos), 6-7 (exemplos), 15 (script export)
+- `scripts/predict.py`: Docstring, engineer_features, validacao de negativos
+- `docs/`: SUMMARY.md, PROJECT_README.md, CHANGELOG.md, INDEX.md atualizados
+
+**Nota**: Modelo precisa ser retreinado para refletir as novas features.
+
+---
+
 ## [3.3.0] - 2026-02-13
 
 ### Mudanças Principais
@@ -225,19 +263,20 @@ Espaço de busca DRASTICAMENTE restrito (detalhes omitidos - ver v3.2 para vers�
 
 ## Comparação de Versões
 
-| Aspecto | v1.0 | v2.0 | v3.0 | v3.1 | v3.2 | v3.3 |
-|---------|------|------|------|------|------|------|
-| Validação | Out-of-time | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV |
-| Scaling | StandardScaler | StandardScaler | RobustScaler | RobustScaler | RobustScaler | RobustScaler |
-| Encoding | OneHotEncoder | OneHotEncoder | Target + OneHot | Target + OneHot | Target + OneHot | Target + OneHot |
-| Tuning | Nenhum | Nenhum | Moderado | Agressivo | Balanceado | Balanceado |
-| Features derivadas | Nenhuma | Nenhuma | 5 (ratios, flags) | 5 | 5 | **7 (reformuladas)** |
-| EDA | Básico | + Viés maturação | + Viés maturação | + Viés maturação | + Viés maturação | **+ Negativos, Clusters, Testes** |
-| SHAP | Nenhum | Nenhum | Implementado | Implementado | Implementado | Implementado |
-| Threshold | 0.5 fixo | Otimizado | Otimizado | Otimizado | Otimizado | Otimizado |
-| Pipeline | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model |
-| Balanceamento | Nenhum | Nenhum | class_weight | class_weight | class_weight | class_weight |
+| Aspecto | v1.0 | v2.0 | v3.0 | v3.1 | v3.2 | v3.3 | v3.4 |
+|---------|------|------|------|------|------|------|------|
+| Validação | Out-of-time | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV | StratifiedKFold CV |
+| Scaling | StandardScaler | StandardScaler | RobustScaler | RobustScaler | RobustScaler | RobustScaler | RobustScaler |
+| Encoding | OneHotEncoder | OneHotEncoder | Target + OneHot | Target + OneHot | Target + OneHot | Target + OneHot | Target + OneHot |
+| Tuning | Nenhum | Nenhum | Moderado | Agressivo | Balanceado | Balanceado | Balanceado |
+| Features derivadas | Nenhuma | Nenhuma | 5 (ratios, flags) | 5 | 5 | 7 (reformuladas) | 7 (flag simplificada) |
+| Qualidade de dados | Nenhum | Nenhum | Nenhum | Nenhum | Nenhum | Nenhum | **Negativos + 99% zeros** |
+| EDA | Básico | + Viés maturação | + Viés maturação | + Viés maturação | + Viés maturação | + Negativos, Clusters, Testes | + Negativos, Clusters, Testes |
+| SHAP | Nenhum | Nenhum | Implementado | Implementado | Implementado | Implementado | Implementado |
+| Threshold | 0.5 fixo | Otimizado | Otimizado | Otimizado | Otimizado | Otimizado | Otimizado |
+| Pipeline | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model | Preprocessor + Model |
+| Balanceamento | Nenhum | Nenhum | class_weight | class_weight | class_weight | class_weight | class_weight |
 
 ---
 
-**Versão atual**: 3.3.0 | **Data**: 2026-02-13
+**Versão atual**: 3.4.0 | **Data**: 2026-02-16

@@ -152,6 +152,9 @@ result = predict_default(input_dict)
 
 ### 2. Pipeline de Modelagem (2_model_pipeline.ipynb) — 73 cells
 
+- **Filtros de qualidade de dados**:
+  - Remoção de registros com valor_total_pedido negativo (144 registros, 0.12% — possível inconsistência nos dados)
+  - Exclusão de 6 variáveis com >=99% zeros (possível filtro pré-venda): `participacao_falencia_valor`, `falencia_concordata_qtd`, `acao_judicial_valor`, `dividas_vencidas_qtd`, `dividas_vencidas_valor`, `quant_acao_judicial`
 - **Preparação de dados**: Remoção de variável year para evitar data leakage; month mantido como categórica (sazonalidade)
 - **Feature engineering**: 7 features derivadas (razao_inadimplencia, taxa_cobertura_divida, total_exposto, razao_vencido_pedido, flag_risco_juridico, ticket_medio_protestos, qtd_parcelas)
 - **Divisão treino/teste**: Estratificada 80/20
@@ -199,16 +202,18 @@ result = predict_default(input_dict)
 | `valor_quitado` | Total pago no histórico (R$) |
 
 #### Externas (Bureau de Crédito)
-| Variável | Descrição |
-|----------|-----------|
-| `quant_protestos` | Quantidade de protestos de títulos |
-| `valor_protestos` | Valor total dos protestos (R$) |
-| `quant_acao_judicial` | Quantidade de ações judiciais |
-| `acao_judicial_valor` | Valor total das ações judiciais (R$) |
-| `participacao_falencia_valor` | Valor total de falências (R$) |
-| `dividas_vencidas_valor` | Valor total de dívidas vencidas (R$) |
-| `dividas_vencidas_qtd` | Quantidade de dívidas vencidas |
-| `falencia_concordata_qtd` | Quantidade de concordatas |
+| Variável | Descrição | Status |
+|----------|-----------|--------|
+| `quant_protestos` | Quantidade de protestos de títulos | Ativa |
+| `valor_protestos` | Valor total dos protestos (R$) | Ativa |
+| `quant_acao_judicial` | Quantidade de ações judiciais | Excluída (99.18% zeros) |
+| `acao_judicial_valor` | Valor total das ações judiciais (R$) | Excluída (99.53% zeros) |
+| `participacao_falencia_valor` | Valor total de falências (R$) | Excluída (100% zeros) |
+| `dividas_vencidas_valor` | Valor total de dívidas vencidas (R$) | Excluída (99.33% zeros) |
+| `dividas_vencidas_qtd` | Quantidade de dívidas vencidas | Excluída (99.39% zeros) |
+| `falencia_concordata_qtd` | Quantidade de concordatas | Excluída (99.95% zeros) |
+
+> **Nota**: 6 variáveis externas foram excluídas do modelo por possuírem >=99% de valores zero, indicando um possível filtro pré-venda. Detalhes na seção [Decisões de Qualidade de Dados](#decisões-de-qualidade-de-dados).
 
 #### Categóricas
 | Variável | Descrição |
@@ -231,37 +236,43 @@ result = predict_default(input_dict)
 ### 1. Análise Exploratória
 - Compreensão dos dados, padrões e anomalias
 - **Análise temporal e identificação de viés de maturação**
+- Identificação de valores negativos em `valor_total_pedido` e variáveis com esparsidade extrema (>=99% zeros)
 - Decisão sobre estratégia de validação
 
-### 2. Feature Engineering (7 features derivadas)
+### 2. Qualidade de Dados
+- Remoção de 144 registros com `valor_total_pedido` negativo (possível inconsistência nos dados)
+- Exclusão de 6 variáveis com >=99% de zeros (possível filtro pré-venda)
+- Simplificação de `flag_risco_juridico` para usar apenas `quant_protestos`
+
+### 3. Feature Engineering (7 features derivadas)
 - `total_exposto`: volume total de relacionamento financeiro (vencido + por_vencer + quitado)
 - `razao_inadimplencia`: grau de deterioração da carteira (vencido / total_exposto)
 - `taxa_cobertura_divida`: capacidade histórica de pagamento (quitado / pedido)
 - `razao_vencido_pedido`: alavancagem atual (vencido / pedido)
-- `flag_risco_juridico`: sinal binário (1 se tem protestos OU ações judiciais)
+- `flag_risco_juridico`: sinal binário (1 se tem protestos > 0)
 - `ticket_medio_protestos`: gravidade do problema jurídico (valor / quantidade)
 - `qtd_parcelas`: complexidade de pagamento extraída de forma_pagamento (proxy fluxo de caixa)
 - **Exclusão de variável year** para evitar data leakage; month mantido como categórica
 
-### 3. Pré-processamento
+### 4. Pré-processamento
 - **Missing Values**: Imputação por mediana (numérico) ou "missing"/"unknown" (categórico)
 - **Scaling**: RobustScaler para variáveis numéricas (robusto a outliers)
 - **Encoding**: Target Encoding para alta cardinalidade (reduz 203+104 categorias → 2 features), OneHotEncoder para baixa cardinalidade
 - **Split**: Divisão estratificada 80/20
 
-### 4. Modelagem
+### 5. Modelagem
 - **Comparação**: 6 algoritmos com StratifiedKFold CV (5 folds)
 - **Seleção**: Melhor modelo baseado em CV ROC-AUC
 - **Balanceamento**: `class_weight='balanced'` nos modelos que suportam
 - **Hyperparameter Tuning**: RandomizedSearchCV com controles anti-overfitting (max_depth, min_child_weight, reg_alpha, reg_lambda)
 
-### 5. Avaliação e Interpretabilidade
+### 6. Avaliação e Interpretabilidade
 - **Métricas**: CV ROC-AUC (média ± std), Test ROC-AUC, F1, Precision, Recall
 - **Curvas**: ROC, Precision-Recall, Confusion Matrix
 - **Feature Importance**: Ranking com nomes descritivos
 - **SHAP Analysis**: Interpretabilidade global e local das predições
 
-### 6. Otimização de Threshold
+### 7. Otimização de Threshold
 - Trade-off Precision vs Recall
 - F-Scores: F1, F2 (prioriza Recall), F0.5 (prioriza Precision)
 - Análise de custos: 4 cenários de negócio (FN vs FP)
@@ -306,8 +317,8 @@ result = predict_default(input_dict)
 | **Test Recall** | 0.746 |
 
 ### Features
-- **24 features raw** (20 numéricas + 3 alta cardinalidade + 1 baixa cardinalidade)
-- **28 features processadas** após Target Encoding e OneHotEncoding
+- **18 features raw** (14 numéricas + 3 alta cardinalidade + 1 baixa cardinalidade) — após exclusão de 6 variáveis com >=99% zeros
+- **22 features processadas** após Target Encoding e OneHotEncoding
 
 ### Thresholds Otimizados
 
@@ -324,7 +335,7 @@ Pipeline([
     ('classifier', XGBoostClassifier)     # modelo otimizado
 ])
 ```
-O pipeline recebe dados raw (24 features) e faz todo o pré-processamento internamente.
+O pipeline recebe dados raw (18 features) e faz todo o pré-processamento internamente.
 
 ---
 
@@ -373,6 +384,21 @@ ls models/model_*.pkl models/model_metadata.json
 
 ---
 
+## Decisões de Qualidade de Dados
+
+### Remoção de valor_total_pedido negativo
+- **Achado (EDA seção 6.1)**: 144 registros (0.12%) com `valor_total_pedido` negativo
+- **Problema**: Valores negativos indicam possível inconsistência nos dados (estornos, ajustes ou erros de cadastro) e distorcem features derivadas (`taxa_cobertura_divida`, `razao_vencido_pedido`)
+- **Decisão**: Remover no pipeline de modelagem; rejeitar na predição
+
+### Exclusão de variáveis com >=99% de zeros
+- **Achado (EDA)**: 6 variáveis do bureau de crédito com >=99% de valores zero
+- **Problema**: Alto índice de zeros indica possível filtro pré-venda — a maioria dos clientes não possui registros nessas dimensões. Manter introduz ruído e esparsidade sem ganho preditivo
+- **Variáveis excluídas**: `participacao_falencia_valor` (100%), `falencia_concordata_qtd` (99.95%), `acao_judicial_valor` (99.53%), `dividas_vencidas_qtd` (99.39%), `dividas_vencidas_valor` (99.33%), `quant_acao_judicial` (99.18%)
+- **Impacto**: `flag_risco_juridico` simplificada para usar apenas `quant_protestos` (96.27% zeros, abaixo do threshold)
+
+---
+
 ## Notas Importantes
 
 1. **Privacidade**: Repositório privado, não compartilhar
@@ -382,4 +408,4 @@ ls models/model_*.pkl models/model_metadata.json
 
 ---
 
-**Versão**: 3.3.0 | **Data**: 2026-02-13 | **Status**: Produção
+**Versão**: 3.4.0 | **Data**: 2026-02-16 | **Status**: Produção

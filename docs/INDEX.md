@@ -84,6 +84,8 @@ exercicio_DSteam_shared4/
 | Testes estatísticos (Mann-Whitney) | `1_EDA.ipynb` (seção 6.2) |
 | Análise de clusters | `1_EDA.ipynb` (seção 9.1) |
 | Viés de maturação | `1_EDA.ipynb` (seção 10) |
+| Remoção valor_total_pedido negativo | `2_model_pipeline.ipynb` (seção 2) |
+| Exclusão variáveis >=99% zeros | `2_model_pipeline.ipynb` (seção 3) |
 | Feature engineering (7 features) | `2_model_pipeline.ipynb` (seção 3) |
 | Pré-processamento | `2_model_pipeline.ipynb` (seção 5) |
 | Hyperparameter tuning | `2_model_pipeline.ipynb` (seção 9.1) |
@@ -105,4 +107,4 @@ python -c "import pandas, sklearn, xgboost, lightgbm, shap; print('OK')"
 
 ---
 
-**Versão**: 3.3.0 | **Data**: 2026-02-13
+**Versão**: 3.4.0 | **Data**: 2026-02-16

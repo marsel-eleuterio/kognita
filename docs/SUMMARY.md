@@ -1,6 +1,6 @@
 # Resumo Executivo - X-Health Default Prediction
 
-> **Versão**: 3.3.0 | **Data**: 2026-02-13 | **Status**: Produção
+> **Versão**: 3.4.0 | **Data**: 2026-02-16 | **Status**: Produção
 
 ---
 
@@ -12,6 +12,7 @@ Modelo de machine learning para predição de default (calote) em transações B
 - Identificação de viés de maturação nos dados (achado crítico)
 - StratifiedKFold CV ao invés de validação out-of-time
 - 7 features derivadas com fundamentação de negócio
+- Filtros de qualidade de dados baseados no EDA (valores negativos e variáveis esparsas)
 - Hyperparameter tuning com controles anti-overfitting
 - SHAP analysis para interpretabilidade
 - Otimização de threshold para diferentes cenários de negócio
@@ -33,6 +34,29 @@ exercicio_DSteam_shared4/
 ├── README.md                     # Enunciado original
 └── requirements.txt              # Dependências
 ```
+
+---
+
+## Filtros de Qualidade de Dados (baseados no EDA)
+
+### 1. Remoção de valor_total_pedido negativo
+- 144 registros (0.12%) com valores negativos removidos
+- **Motivo**: Possível inconsistência nos dados (estornos, ajustes ou erros de cadastro)
+- Valores negativos distorcem features derivadas (`taxa_cobertura_divida`, `razao_vencido_pedido`)
+
+### 2. Exclusão de variáveis com >=99% de zeros
+- 6 variáveis excluídas por alto índice de zeros (possível filtro pré-venda):
+
+| Variável | % Zeros | Motivo |
+|----------|---------|--------|
+| `participacao_falencia_valor` | 100.00% | Sem variância |
+| `falencia_concordata_qtd` | 99.95% | Esparsidade extrema |
+| `acao_judicial_valor` | 99.53% | Esparsidade extrema |
+| `dividas_vencidas_qtd` | 99.39% | Esparsidade extrema |
+| `dividas_vencidas_valor` | 99.33% | Esparsidade extrema |
+| `quant_acao_judicial` | 99.18% | Esparsidade extrema |
+
+- **Nota**: `flag_risco_juridico` agora usa apenas `quant_protestos` (96.27% zeros, abaixo do threshold)
 
 ---
 
@@ -58,7 +82,7 @@ exercicio_DSteam_shared4/
 | `razao_inadimplencia` | vencido / total_exposto | Grau de deterioração da carteira |
 | `taxa_cobertura_divida` | quitado / pedido | Capacidade histórica de pagamento |
 | `razao_vencido_pedido` | vencido / pedido | Alavancagem atual |
-| `flag_risco_juridico` | 1 se protestos OU ações judiciais | Sinal binário de alerta |
+| `flag_risco_juridico` | 1 se protestos > 0 | Sinal binário de alerta |
 | `ticket_medio_protestos` | valor_protestos / quant_protestos | Gravidade do problema jurídico |
 | `qtd_parcelas` | contagem de '/' em forma_pagamento + 1 | Proxy de fluxo de caixa |
 
@@ -70,7 +94,7 @@ exercicio_DSteam_shared4/
 
 | Tipo | Transformação | Features |
 |------|--------------|----------|
-| Numérico | SimpleImputer + RobustScaler | 22 features (15 brutas + 7 derivadas) |
+| Numérico | SimpleImputer + RobustScaler | 16 features (9 brutas + 7 derivadas) |
 | Alta cardinalidade | SimpleImputer + TargetEncoder | atividade_principal, forma_pagamento |
 | Baixa cardinalidade | SimpleImputer + OneHotEncoder | tipo_sociedade, opcao_tributaria, month |
 
@@ -118,6 +142,7 @@ Pipeline([
 - Identificação de viés de maturação e picos anomalos
 
 ### Notebook 2: Pipeline (73 cells)
+- Filtros de qualidade: remoção de valor_total_pedido negativo e variáveis com >=99% zeros
 - Feature engineering (7 features derivadas com fundamentação de negócio)
 - ColumnTransformer (Target Encoding + RobustScaler + OneHotEncoder)
 - 6 modelos com StratifiedKFold CV
@@ -158,4 +183,4 @@ pip install -r requirements.txt
 
 ---
 
-**Versão**: 3.3.0 | **Data**: 2026-02-13
+**Versão**: 3.4.0 | **Data**: 2026-02-16
