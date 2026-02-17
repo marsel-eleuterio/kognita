@@ -21,6 +21,8 @@ ALL_FEATURES = metadata['numeric_features'] + metadata['high_cardinality_feature
 CATEGORICAL_FEATURES = metadata['high_cardinality_features'] + metadata['low_cardinality_features']
 DERIVED_FEATURES = metadata.get('derived_features', [])
 THRESHOLD_F1 = metadata.get('optimal_threshold_f1', 0.5)
+THRESHOLD_F2  = metadata.get('optimal_threshold_f2', 0.3)
+THRESHOLD_F05 = metadata.get('optimal_threshold_f05', 0.7)
 
 
 def engineer_features(df):
@@ -56,23 +58,36 @@ def to_categorical(x):
 
 def predict_default(input_dict, threshold=None):
     if threshold is None: threshold = THRESHOLD_F1
-    df = pd.DataFrame([input_dict])
-    for col in df.columns:
-        if col in CATEGORICAL_FEATURES:
-            df[col] = df[col].apply(to_categorical)
-        else:
-            df[col] = pd.to_numeric(df[col].replace('missing', np.nan), errors='coerce')
-    # Validar valor_total_pedido negativo (inconsistencia nos dados - EDA)
-    if 'valor_total_pedido' in df.columns:
-        vtp = pd.to_numeric(df['valor_total_pedido'], errors='coerce')
-        if (vtp < 0).any():
-            return {"error": "valor_total_pedido negativo detectado - possivel inconsistencia nos dados"}
-    df = engineer_features(df)
-    for f in ALL_FEATURES:
-        if f not in df.columns:
-            df[f] = 'unknown' if f in CATEGORICAL_FEATURES else np.nan
-    prob = float(model.predict_proba(df[ALL_FEATURES])[0, 1])
-    return {"default": int(prob >= threshold), "probability": round(prob, 4), "threshold_used": round(threshold, 4)}
+    try:
+        df = pd.DataFrame([input_dict])
+        for col in df.columns:
+            if col in CATEGORICAL_FEATURES:
+                df[col] = df[col].apply(to_categorical)
+            else:
+                df[col] = pd.to_numeric(df[col].replace('missing', np.nan), errors='coerce')
+        # Validar valor_total_pedido negativo (inconsistencia nos dados - EDA)
+        if 'valor_total_pedido' in df.columns:
+            vtp = pd.to_numeric(df['valor_total_pedido'], errors='coerce')
+            if (vtp < 0).any():
+                return {"error": "valor_total_pedido negativo detectado - possivel inconsistencia nos dados"}
+        df = engineer_features(df)
+        for f in ALL_FEATURES:
+            if f not in df.columns:
+                df[f] = 'unknown' if f in CATEGORICAL_FEATURES else np.nan
+        prob = float(model.predict_proba(df[ALL_FEATURES])[0, 1])
+        return {
+            "default": int(prob >= threshold),
+            "probability": round(prob, 4),
+            "confidence": round(max(prob, 1 - prob), 4),
+            "threshold_used": round(threshold, 4),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def predict_default_batch(input_list, threshold=None):
+    """Predicao em batch. Mesma interface, aceita lista de dicts."""
+    return [predict_default(d, threshold) for d in input_list]
 
 if __name__ == '__main__':
     print(predict_default({"ioi_3months": 3, "valor_vencido": 125000, "valor_total_pedido": 35000, "month": 6}))

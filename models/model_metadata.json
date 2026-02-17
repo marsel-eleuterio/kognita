@@ -1,6 +1,6 @@
 {
   "model_name": "XGBoost",
-  "training_date": "2026-02-16 17:52:37",
+  "training_date": "2026-02-17 19:03:36",
   "test_roc_auc": 0.9250826570603704,
   "test_f1": 0.6708523997020326,
   "test_precision": 0.5690557862430041,
